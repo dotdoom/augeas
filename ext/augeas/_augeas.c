@@ -1,7 +1,7 @@
 /*
  * augeas.c: Ruby bindings for augeas
  *
- * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2008-2011 Red Hat Inc.
  * Copyright (C) 2011 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *
  * This library is free software; you can redistribute it and/or
@@ -21,14 +21,13 @@
  * Authors: Bryan Kearney <bkearney@redhat.com>
  *          Ionuț Arțăriși <iartarisi@suse.cz>
  */
+#include "_augeas.h"
+
 #include <ruby.h>
 #include <augeas.h>
 
 static VALUE c_augeas_old;
 static VALUE c_augeas;
-
-#define StringValueCStrOrNull(v)                \
-    NIL_P(v) ? NULL : StringValueCStr(v)
 
 static augeas *aug_handle(VALUE s) {
     augeas *aug;
@@ -471,6 +470,35 @@ VALUE augeas_span(VALUE s, VALUE path) {
     return result;
 }
 
+/*
+ * call-seq:
+ *   srun(COMMANDS) -> [int, String]
+ *
+ * Run one or more newline-separated commands, returning their output.
+ *
+ * Returns:
+ * an array where the first element is the number of executed commands on
+ * success, -1 on failure, and -2 if a 'quit' command was encountered.
+ * The second element is a string of the output from all commands.
+ */
+VALUE augeas_srun(VALUE s, VALUE text) {
+    augeas *aug = aug_handle(s);
+    const char *ctext = StringValueCStr(text);
+
+    struct memstream ms;
+    __aug_init_memstream(&ms);
+
+    int r = aug_srun(aug, ms.stream, ctext);
+    __aug_close_memstream(&ms);
+
+    VALUE result = rb_ary_new();
+    rb_ary_push(result, INT2NUM(r));
+    rb_ary_push(result, rb_str_new2(ms.buf));
+
+    free(ms.buf);
+    return result;
+}
+
 void Init__augeas() {
 
     /* Define the OLD ruby class. DEPRECATED. */
@@ -580,7 +608,6 @@ void Init__augeas() {
     rb_define_method(c_augeas, "close", augeas_close, 0);
     rb_define_method(c_augeas, "error", augeas_error, 0);
     rb_define_method(c_augeas, "augeas_span", augeas_span, 1);
-    
 }
 
 /*
