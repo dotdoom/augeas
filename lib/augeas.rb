@@ -20,6 +20,7 @@
 #
 # Authors: Ionuț Arțăriși <iartarisi@suse.cz>
 #          Bryan Kearney <bkearney@redhat.com>
+#          Artem Sheremet <dot.doom@gmail.com>
 ##
 
 require "_augeas"

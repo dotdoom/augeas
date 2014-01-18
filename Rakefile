@@ -1,25 +1,16 @@
 # -*- ruby -*-
-# Rakefile: build ruby augeas bindings
-#
-# Copyright (C) 2008 Red Hat, Inc.
-#
-# Distributed under the GNU Lesser General Public License v2.1 or later.
-# See COPYING for details
-#
-# Bryan Kearney <bkearney@redhat.com>
 
 require 'rake/clean'
 require 'rdoc/task'
 require 'rake/testtask'
 require 'rubygems/package_task'
 
-PKG_NAME='ruby-augeas'
-GEM_NAME=PKG_NAME # we'd like 'augeas' but that makes RPM fail
-PKG_VERSION='0.5.0'
+GEM_NAME='augeas'
+GEM_VERSION='0.6.0'
 EXT_CONF='ext/augeas/extconf.rb'
 MAKEFILE="ext/augeas/Makefile"
 AUGEAS_MODULE="ext/augeas/_augeas.so"
-SPEC_FILE="ruby-augeas.spec"
+SPEC_FILE="augeas.spec"
 AUGEAS_SRC=AUGEAS_MODULE.gsub(/.so$/, ".c")
 
 #
@@ -81,20 +72,16 @@ PKG_FILES = FileList[
   "spec/**/*"
 ]
 
-DIST_FILES = FileList[
-  "pkg/*.tgz", "pkg/*.gem"
-]
-
 SPEC = Gem::Specification.new do |s|
     s.name = GEM_NAME
-    s.version = PKG_VERSION
-    s.email = "augeas-devel@redhat.com"
+    s.version = GEM_VERSION
+    s.email = "dot.doom@gmail.com"
     s.homepage = "http://augeas.net/"
     s.summary = "Ruby bindings for augeas"
-    s.authors = [ "Bryan Kearney", "David Lutterkort" ]
+    s.authors = [ "Bryan Kearney", "David Lutterkort", "Ionut Artarisi", "Artem Sheremet" ]
     s.files = PKG_FILES
-    s.autorequire = "augeas"
-    s.required_ruby_version = '>= 1.8.1'
+	s.licenses = ['LGPLv2']
+    s.required_ruby_version = '>= 1.8.7'
     s.extensions = "ext/augeas/extconf.rb"
     s.description = "Provides bindings for augeas."
     s.add_development_dependency "rake"

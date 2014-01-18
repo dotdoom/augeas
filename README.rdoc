@@ -40,9 +40,7 @@ startup; that allows setting up a custom transform.
 == Deprecation Warning
 
 The Augeas API has been heavily rewritten in order to better support
-errors. While the old functionality is still available unchanged if you
-instantiate the Augeas object with <tt>Augeas::open</tt>, it is highly
-preferred that you use the new API.
+errors.
 
 To use the new API, just use <tt>Augeas::create</tt> instead of
 <tt>Augeas::open</tt>. This is the documentation for the

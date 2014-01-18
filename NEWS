@@ -1,3 +1,7 @@
+0.6.0 - 2014-01-19
+  - merge pull request by mapleoin (https://github.com/mapleoin):
+    raise exceptions instead of returning error codes
+
 0.5.0 - 2013-03-12
   - add libxml2 headers and library to Makefile
   - add libxml2-devel build req to rpm spec
