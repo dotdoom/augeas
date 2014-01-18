@@ -607,6 +607,8 @@ void Init__augeas() {
     DEF_AUG_ERR(ENOSPAN);
     DEF_AUG_ERR(EMVDESC);
     DEF_AUG_ERR(ECMDRUN);
+	DEF_AUG_ERR(EBADARG);
+	DEF_AUG_ERR(ELABEL);
 #undef DEF_AUG_ERR
 
     /* Define the methods */
@@ -627,11 +629,11 @@ void Init__augeas() {
     rb_define_method(c_augeas, "close", augeas_close, 0);
     rb_define_method(c_augeas, "error", augeas_error, 0);
     rb_define_method(c_augeas, "augeas_span", augeas_span, 1);
-    rb_define_method(c_augeas, "srun", augeas_srun, 1);
-    rb_define_method(c_augeas, "label", augeas_label, 1);
-    rb_define_method(c_augeas, "rename", augeas_rename, 2);
-    rb_define_method(c_augeas, "text_store", augeas_text_store, 3);
-    rb_define_method(c_augeas, "text_retrieve", augeas_text_retrieve, 4);
+    rb_define_method(c_augeas, "augeas_srun", augeas_srun, 1);
+    rb_define_method(c_augeas, "augeas_label", augeas_label, 1);
+    rb_define_method(c_augeas, "augeas_rename", augeas_rename, 2);
+    rb_define_method(c_augeas, "augeas_text_store", augeas_text_store, 3);
+    rb_define_method(c_augeas, "augeas_text_retrieve", augeas_text_retrieve, 4);
 }
 
 /*

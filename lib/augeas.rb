@@ -40,6 +40,8 @@ class Augeas
 	class NoSpanInfoError         < Error; end
 	class DescendantError         < Error; end
 	class CommandExecutionError   < Error; end
+	class InvalidArgumentError    < Error; end
+	class InvalidLabelError       < Error; end
 	@@error_hash = {
 		# the cryptic error names come from the C library, we just make
 		# them more ruby and more human
@@ -53,7 +55,10 @@ class Augeas
 		EMXFM     => MultipleTransformsError,
 		ENOSPAN   => NoSpanInfoError,
 		EMVDESC   => DescendantError,
-		ECMDRUN   => CommandExecutionError}
+		ECMDRUN   => CommandExecutionError,
+		EBADARG   => InvalidArgumentError,
+		ELABEL    => InvalidLabelError,
+	}
 
 	# Create a new Augeas instance and return it.
 	#
@@ -181,7 +186,7 @@ class Augeas
 
 	# Create the +path+ with empty value if it doesn't exist
 	def touch(path)
-		set_internal(path, nil) if match(path).empty?
+		set(path, nil) if match(path).empty?
 	end
 
 	# Evaluate +expr+ and set the variable +name+ to the resulting
@@ -296,12 +301,57 @@ class Augeas
 		run_command :augeas_span, path
 	end
 
+	# Run one or more newline-separated commands specified by +text+,
+	# returns an array of [successful_commands_number, output] or
+	# [-2, output] in case 'quit' command has been encountered.
+	# Raises <tt>Augeas::CommandExecutionError</tt> if gets an invalid command
+	def srun(text)
+		run_command(:augeas_srun, text)
+	end
+
+	# Lookup the label associated with +path+
+	# Raises <tt>Augeas::NoMatchError</tt> if the +path+ node does not exist
+	def label(path)
+		run_command :augeas_label, path
+	end
+
+	# Rename the label of all nodes matching +path+ to +label+
+	# Raises <tt>Augeas::NoMatchError</tt> if the +path+ node does not exist
+	# Raises <tt>Augeas::InvalidLabelError</tt> if +label+ is invalid
+	def rename(path, label)
+		run_command :augeas_rename, path, label
+	end
+
+	# Use the value of node +node+ as a string and transform it into a tree
+	# using the lens +lens+ and store it in the tree at +path+,
+	# which will be overwritten. +path+ and +node+ are path expressions.
+	def text_store(lens, node, path)
+		run_command :augeas_text_store, lens, node, path
+	end
+
+	# Transform the tree at +path+ into a string lens +lens+ and store it
+	# in the node +node_out+, assuming the tree was initially generated using
+	# the value of node +node_in+. +path+, +node_in+ and +node_out+ are path expressions.
+	def text_retrieve(lens, node_in, path, node_out)
+		run_command :augeas_text_retrieve, lens, node_in, path, node_out
+	end
+
 	# Make +label+ a sibling of +path+ by inserting it directly before
 	# or after +path+.
 	# The boolean +before+ determines if +label+ is inserted before or
 	# after +path+.
 	def insert(path, label, before)
 		run_command :augeas_insert, path, label, before
+	end
+
+	# Set path expression context to +path+ (in /augeas/context)
+	def context=(path)
+		set('/augeas/context', path)
+	end
+
+	# Get path expression context (from /augeas/context)
+	def context
+		get('/augeas/context')
 	end
 
 	private
@@ -328,15 +378,5 @@ class Augeas
 		end
 
 		return result
-	end
-
-	# Set path expression context to +path+ (in /augeas/context)
-	def context=(path)
-		set_internal('/augeas/context', path)
-	end
-
-	# Get path expression context (from /augeas/context)
-	def context
-		get('/augeas/context')
 	end
 end

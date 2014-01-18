@@ -1,5 +1,5 @@
 # -*- ruby -*-
-# Rakefile: build ruby auges bindings
+# Rakefile: build ruby augeas bindings
 #
 # Copyright (C) 2008 Red Hat, Inc.
 #
@@ -104,34 +104,6 @@ end
 Gem::PackageTask.new(SPEC) do |pkg|
     pkg.need_tar = true
     pkg.need_zip = true
-end
-
-desc "Build (S)RPM for #{PKG_NAME}"
-task :rpm => [ :package ] do |t|
-    system("sed -e 's/@VERSION@/#{PKG_VERSION}/' #{SPEC_FILE} > pkg/#{SPEC_FILE}")
-    Dir::chdir("pkg") do |dir|
-        dir = File::expand_path(".")
-        system("rpmbuild --define '_topdir #{dir}' --define '_sourcedir #{dir}' --define '_srcrpmdir #{dir}' --define '_rpmdir #{dir}' --define '_builddir #{dir}' -ba #{SPEC_FILE} > rpmbuild.log 2>&1")
-        if $? != 0
-            raise "rpmbuild failed"
-        end
-    end
-end
-
-desc "Release a version to the site"
-task :dist => [ :rpm ] do |t|
-    puts "Copying files"
-    unless sh "scp -p #{DIST_FILES.to_s} et:/var/www/sites/augeas.et.redhat.com/download/ruby"
-        $stderr.puts "Copy to et failed"
-        break
-    end
-    puts "Commit and tag #{PKG_VERSION}"
-    system "git commit -a -m 'Released version #{PKG_VERSION}'"
-    system "git tag -s -m 'Tag release #{PKG_VERSION}' release-#{PKG_VERSION}"
-end
-
-task :sync do |t|
-    system "rsync -rav doc/site/ et:/var/www/sites/augeas.et.redhat.com/docs/ruby/"
 end
 
 task :default => [:build, :test]

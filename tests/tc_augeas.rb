@@ -88,7 +88,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_load
-		aug = aug_open(Augeas::NO_LOAD)
+		aug = aug_create(no_load: true)
 		assert_equal([], aug.match("/files/etc/*"))
 		aug.rm("/augeas/load/*");
 		assert_nothing_raised {
@@ -98,7 +98,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_transform
-		aug = aug_open(Augeas::NO_LOAD)
+		aug = aug_create(no_load: true)
 		aug.clear_transforms
 		aug.transform(:lens => "Hosts.lns",
 					  :incl => "/etc/hosts")
@@ -125,7 +125,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_defvar
-		Augeas::open("/dev/null") do |aug|
+		Augeas::create(root: "/dev/null") do |aug|
 			aug.set("/a/b", "bval")
 			aug.set("/a/c", "cval")
 			assert aug.defvar("var", "/a/b")
@@ -510,25 +510,8 @@ class TestAugeas < Test::Unit::TestCase
 		assert_equal("enable", aug.get("/augeas/span"))
 	end
 
-	private
-
-	def aug_create(flags={})
-		if File::directory?(TST_ROOT)
-			FileUtils::rm_rf(TST_ROOT)
-		end
-		FileUtils::mkdir_p(TST_ROOT)
-		FileUtils::cp_r(SRC_ROOT, TST_ROOT)
-
-		Augeas::create({:root => TST_ROOT, :loadpath => nil}.merge(flags))
-	end
-
-	def test_set!
-		aug = aug_open
-		assert_raises(Augeas::Error) { aug.set!("files/etc/hosts/*", nil) }
-	end
-
 	def test_set
-		aug = aug_open
+		aug = aug_create
 		aug.set("/files/etc/group/disk/user[last()+1]",["user1","user2"])
 		assert_equal( aug.get("/files/etc/group/disk/user[1]"),"root" )
 		assert_equal( aug.get("/files/etc/group/disk/user[2]"),"user1" )
@@ -550,7 +533,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_setm
-		aug = aug_open
+		aug = aug_create
 
 		aug.setm("/files/etc/group/*[label() =~ regexp(\"rpc.*\")]","users", "testuser1")
 		assert_equal( aug.get("/files/etc/group/rpc/users"), "testuser1")
@@ -562,10 +545,10 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_error
-		aug = aug_open
+		aug = aug_create
 
 		# Cause an error
-		aug.get("/files/etc/hosts/*")
+		aug.get("/files/etc/hosts/*") rescue nil
 		err = aug.error
 		assert_equal(Augeas::EMMATCH, err[:code])
 		assert err[:message]
@@ -574,10 +557,9 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_span
-		aug = aug_open
+		aug = aug_create
 
-		span = aug.span("/files/etc/ssh/sshd_config/Protocol")
-		assert_equal({}, span)
+		assert_raises(Augeas::NoSpanInfoError) { aug.span("/files/etc/ssh/sshd_config/Protocol") }
 
 		aug.set("/augeas/span", "enable")
 		aug.rm("/files/etc")
@@ -591,7 +573,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_srun
-		aug = aug_open
+		aug = aug_create
 
 		path = "/files/etc/hosts/*[canonical='localhost.localdomain']/ipaddr"
 		r, out = aug.srun("get #{path}\n")
@@ -599,21 +581,21 @@ class TestAugeas < Test::Unit::TestCase
 		assert_equal("#{path} = 127.0.0.1\n", out)
 
 		assert_equal(0, aug.srun(" ")[0])
-		assert_equal(-1, aug.srun("foo")[0])
-		assert_equal(-1, aug.srun("set")[0])
+		assert_raises(Augeas::CommandExecutionError) { aug.srun("foo") }
+		assert_raises(Augeas::CommandExecutionError) { aug.srun("set") }
 		assert_equal(-2, aug.srun("quit")[0])
 	end
 
 	def test_label
-		Augeas::open("/dev/null") do |aug|
+		Augeas::create(root: "/dev/null") do |aug|
 			assert_equal 'augeas', aug.label('/augeas')
 			assert_equal 'files', aug.label('/files')
 		end
 	end
 
 	def test_rename
-		Augeas::open("/dev/null") do |aug|
-			assert_equal false, aug.rename('/files', 'invalid/label')
+		Augeas::create(root: "/dev/null") do |aug|
+			assert_raises(Augeas::InvalidLabelError) { aug.rename('/files', 'invalid/label') }
 			assert_equal 0, aug.rename('/nonexistent', 'label')
 			assert_equal ['/files'], aug.match('/files')
 			assert_equal 1, aug.rename('/files', 'label')
@@ -621,9 +603,9 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_text_store_retrieve
-		Augeas::open("/dev/null") do |aug|
+		Augeas::create(root: "/dev/null") do |aug|
 			# text_store errors
-			assert_equal false, aug.text_store('Simplelines.lns', '/input', '/store')
+			assert_raises(Augeas::NoMatchError) { aug.text_store('Simplelines.lns', '/input', '/store') }
 
 			# text_store
 			aug.set('/input', "line1\nline2\n")
@@ -631,7 +613,7 @@ class TestAugeas < Test::Unit::TestCase
 			assert_equal 'line2', aug.get('/store/2')
 
 			# text_retrieve errors
-			assert_equal false, aug.text_retrieve('Simplelines.lns', '/unknown', '/store', '/output')
+			assert_raises(Augeas::NoMatchError) { aug.text_retrieve('Simplelines.lns', '/unknown', '/store', '/output') }
 
 			# text_retrieve
 			aug.set('/store/3', 'line3')
@@ -641,7 +623,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_context
-		Augeas::open("/dev/null") do |aug|
+		Augeas::create(root: "/dev/null") do |aug|
 			aug.context = '/augeas'
 			assert_equal '/augeas', aug.get('/augeas/context')
 			assert_equal '/augeas', aug.get('context')
@@ -650,7 +632,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_touch
-		Augeas::open("/dev/null") do |aug|
+		Augeas::create(root: "/dev/null") do |aug|
 			assert_equal [], aug.match('/foo')
 			aug.touch '/foo'
 			assert_equal ['/foo'], aug.match('/foo')
@@ -662,7 +644,7 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	def test_clearm
-		Augeas::open("/dev/null") do |aug|
+		Augeas::create(root: "/dev/null") do |aug|
 			aug.set('/foo/a', '1')
 			aug.set('/foo/b', '2')
 			aug.clearm('/foo', '*')
@@ -672,13 +654,13 @@ class TestAugeas < Test::Unit::TestCase
 	end
 
 	private
-	def aug_open(flags = Augeas::NONE)
+	def aug_create(flags={})
 		if File::directory?(TST_ROOT)
 			FileUtils::rm_rf(TST_ROOT)
 		end
 		FileUtils::mkdir_p(TST_ROOT)
 		FileUtils::cp_r(SRC_ROOT, TST_ROOT)
 
-		Augeas::open(TST_ROOT, nil, flags)
+		Augeas::create({:root => TST_ROOT, :loadpath => nil}.merge(flags))
 	end
 end

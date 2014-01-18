@@ -6,3 +6,4 @@ ext/augeas/*.so
 ext/augeas/*.log
 pkg/
 Gemfile.lock
+*.swp
