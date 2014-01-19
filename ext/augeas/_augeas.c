@@ -25,6 +25,7 @@
 
 #include <ruby.h>
 #include <augeas.h>
+#include <errno.h>
 
 static VALUE c_augeas;
 
@@ -92,30 +93,6 @@ VALUE augeas_set(VALUE s, VALUE path, VALUE value) {
 
     int callValue = aug_set(aug, cpath, cvalue) ;
     return INT2FIX(callValue);
-}
-
-/*
- * call-seq:
- *   set(PATH, VALUE) -> boolean
- *
- * Set the value associated with PATH to VALUE. VALUE is copied into the
- * internal data structure. Intermediate entries are created if they don't
- * exist.
- */
-VALUE augeas_set_old(VALUE s, VALUE path, VALUE value) {
-    augeas *aug = aug_handle(s);
-    const char *cpath = StringValueCStr(path) ;
-    const char *cvalue = StringValueCStrOrNull(value) ;
-
-    int callValue = aug_set(aug, cpath, cvalue) ;
-    VALUE returnValue ;
-
-    if (callValue == 0)
-        returnValue = Qtrue ;
-    else
-        returnValue = Qfalse ;
-
-    return returnValue ;
 }
 
 /*
@@ -216,35 +193,6 @@ VALUE augeas_match(VALUE s, VALUE p) {
 
 /*
  * call-seq:
- *       match(PATH) -> an_array
- *
- * Return all the paths that match the path expression PATH as an aray of
- * strings.
- * Raises an error if no paths were found.
- */
-VALUE augeas_match_old(VALUE s, VALUE p) {
-    augeas *aug = aug_handle(s);
-    const char *path = StringValueCStr(p);
-    char **matches = NULL;
-    int cnt, i;
-
-    cnt = aug_match(aug, path, &matches) ;
-    if (cnt < 0)
-        rb_raise(rb_eSystemCallError, "Matching path expression '%s' failed",
-                 path);
-
-    VALUE result = rb_ary_new();
-    for (i = 0; i < cnt; i++) {
-        rb_ary_push(result, rb_str_new(matches[i], strlen(matches[i])));
-        free(matches[i]) ;
-    }
-    free (matches) ;
-
-    return result ;
-}
-
-/*
- * call-seq:
  *       save() -> int
  *
  * Write all pending changes to disk
@@ -257,25 +205,6 @@ VALUE augeas_save(VALUE s) {
 
 /*
  * call-seq:
- *       save() -> boolean
- *
- * Write all pending changes to disk
- */
-VALUE augeas_save_old(VALUE s) {
-    augeas *aug = aug_handle(s);
-    int callValue = aug_save(aug) ;
-    VALUE returnValue ;
-
-    if (callValue == 0)
-        returnValue = Qtrue ;
-    else
-        returnValue = Qfalse ;
-
-    return returnValue ;
-}
-
-/*
- * call-seq:
  *       load() -> int
  *
  * Load files from disk according to the transforms under +/augeas/load+
@@ -284,25 +213,6 @@ VALUE augeas_load(VALUE s) {
     augeas *aug = aug_handle(s);
     int callValue = aug_load(aug);
     return INT2FIX(callValue);
-}
-
-/*
- * call-seq:
- *       load() -> boolean
- *
- * Load files from disk according to the transforms under +/augeas/load+
- */
-VALUE augeas_load_old(VALUE s) {
-    augeas *aug = aug_handle(s);
-    int callValue = aug_load(aug);
-    VALUE returnValue ;
-
-    if (callValue == 0)
-        returnValue = Qtrue ;
-    else
-        returnValue = Qfalse ;
-
-    return returnValue ;
 }
 
 /*
@@ -355,10 +265,7 @@ VALUE augeas_defnode(VALUE s, VALUE name, VALUE expr, VALUE value) {
     return (r < 0) ? Qfalse : INT2NUM(r);
 }
 
-/* This function returns different names for different augeas API */
-/* version specified in the +version+ argument. See augeas_init_old and */
-/* augeas_init. */
-VALUE augeas_init_split(VALUE m, VALUE r, VALUE l, VALUE f, char version) {
+VALUE augeas_init(VALUE m, VALUE r, VALUE l, VALUE f) {
     unsigned int flags = NUM2UINT(f);
     const char *root = StringValueCStrOrNull(r);
     const char *loadpath = StringValueCStrOrNull(l);
@@ -366,18 +273,10 @@ VALUE augeas_init_split(VALUE m, VALUE r, VALUE l, VALUE f, char version) {
 
     aug = aug_init(root, loadpath, flags);
     if (aug == NULL) {
-        rb_raise(rb_eSystemCallError, "Failed to initialize Augeas");
+        rb_raise(rb_eSystemCallError, "Failed to initialize Augeas (%d)", errno);
     }
     return Data_Wrap_Struct(c_augeas, NULL, augeas_free, aug);
 }
-
-VALUE augeas_init_old(VALUE m, VALUE r, VALUE l, VALUE f) {
-    return augeas_init_split(m, r, l, f, 0);
-}
-VALUE augeas_init(VALUE m, VALUE r, VALUE l, VALUE f) {
-    return augeas_init_split(m, r, l, f, 1);
-}
-
 
 VALUE augeas_close (VALUE s) {
     augeas *aug = aug_handle(s);
@@ -590,6 +489,9 @@ void Init__augeas() {
     DEF_AUG_FLAG(NO_LOAD);
     DEF_AUG_FLAG(NO_MODL_AUTOLOAD);
     DEF_AUG_FLAG(ENABLE_SPAN);
+#ifdef AUG_NO_ERR_CLOSE
+	DEF_AUG_FLAG(NO_ERR_CLOSE);
+#endif
 #undef DEF_AUG_FLAG
 
 /* Constants for enum aug_errcode_t */
@@ -608,7 +510,9 @@ void Init__augeas() {
     DEF_AUG_ERR(EMVDESC);
     DEF_AUG_ERR(ECMDRUN);
 	DEF_AUG_ERR(EBADARG);
+#ifdef AUG_ELABEL
 	DEF_AUG_ERR(ELABEL);
+#endif
 #undef DEF_AUG_ERR
 
     /* Define the methods */

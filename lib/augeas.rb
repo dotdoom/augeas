@@ -43,23 +43,23 @@ class Augeas
 	class CommandExecutionError   < Error; end
 	class InvalidArgumentError    < Error; end
 	class InvalidLabelError       < Error; end
-	@@error_hash = {
+	ERRORS_HASH = Hash[{
 		# the cryptic error names come from the C library, we just make
 		# them more ruby and more human
-		ENOMEM    => NoMemoryError,
-		EINTERNAL => InternalError,
-		EPATHX    => InvalidPathError,
-		ENOMATCH  => NoMatchError,
-		EMMATCH   => MultipleMatchesError,
-		ESYNTAX   => LensSyntaxError,
-		ENOLENS   => LensNotFoundError,
-		EMXFM     => MultipleTransformsError,
-		ENOSPAN   => NoSpanInfoError,
-		EMVDESC   => DescendantError,
-		ECMDRUN   => CommandExecutionError,
-		EBADARG   => InvalidArgumentError,
-		ELABEL    => InvalidLabelError,
-	}
+		:ENOMEM    => NoMemoryError,
+		:EINTERNAL => InternalError,
+		:EPATHX    => InvalidPathError,
+		:ENOMATCH  => NoMatchError,
+		:EMMATCH   => MultipleMatchesError,
+		:ESYNTAX   => LensSyntaxError,
+		:ENOLENS   => LensNotFoundError,
+		:EMXFM     => MultipleTransformsError,
+		:ENOSPAN   => NoSpanInfoError,
+		:EMVDESC   => DescendantError,
+		:ECMDRUN   => CommandExecutionError,
+		:EBADARG   => InvalidArgumentError,
+		:ELABEL    => InvalidLabelError,
+	}.map { |k, v| [(const_get(k) rescue nil), v] }].freeze
 
 	# Create a new Augeas instance and return it.
 	#
@@ -101,7 +101,7 @@ class Augeas
 		# aug_flags is a bitmask in the underlying library, we add all the
 		# values of the flags which were set to true to the default value
 		# Augeas::NONE (which is 0)
-		aug_flags = Augeas::NONE
+		aug_flags = defined?(Augeas::NO_ERR_CLOSE) ? Augeas::NO_ERR_CLOSE : Augeas::NONE
 
 		flags = {
 			:type_check => Augeas::TYPE_CHECK,
@@ -117,10 +117,10 @@ class Augeas
 		}
 		opts.each_key do |key|
 			if flags.key? key
-				aug_flags += flags[key]
+				aug_flags |= flags[key]
 			elsif key == :save_mode
 				if save_modes[opts[:save_mode]]
-					aug_flags += save_modes[opts[:save_mode]]
+					aug_flags |= save_modes[opts[:save_mode]]
 				else
 					raise ArgumentError, "Invalid save mode #{opts[:save_mode]}."
 				end
@@ -130,6 +130,13 @@ class Augeas
 		end
 
 		aug = Augeas::open3(opts[:root], opts[:loadpath], aug_flags)
+
+		begin
+			aug.send(:raise_last_error)
+		rescue
+			aug.close
+			raise
+		end
 
 		if block_given?
 			begin
@@ -366,11 +373,7 @@ class Augeas
 	def run_command(cmd, *params)
 		result = self.send cmd, *params
 
-		errcode = error[:code]
-		unless errcode.zero?
-			raise @@error_hash[errcode],
-				"#{error[:message]} #{error[:details]}"
-		end
+		raise_last_error
 
 		if result.kind_of? Fixnum and result < 0
 			# we raise CommandExecutionError here, because this is the error that
@@ -379,5 +382,12 @@ class Augeas
 		end
 
 		return result
+	end
+
+	def raise_last_error
+		error_cache = error
+		unless error_cache[:code].zero?
+			raise ERRORS_HASH[error_cache[:code]], "#{error_cache[:message]} #{error_cache[:details]}"
+		end
 	end
 end
