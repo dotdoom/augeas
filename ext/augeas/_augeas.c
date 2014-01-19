@@ -55,12 +55,12 @@ VALUE augeas_get(VALUE s, VALUE path) {
     const char *cpath = StringValueCStr(path);
     const char *value = NULL;
 
-	int retval = aug_get(aug, cpath, &value);
+    int retval = aug_get(aug, cpath, &value);
 
     if (retval == 1 && value != NULL) {
-		return rb_str_new(value, strlen(value));
+        return rb_str_new(value, strlen(value));
     } else {
-		return Qnil;
+        return Qnil;
     }
 }
 
@@ -489,9 +489,7 @@ void Init__augeas() {
     DEF_AUG_FLAG(NO_LOAD);
     DEF_AUG_FLAG(NO_MODL_AUTOLOAD);
     DEF_AUG_FLAG(ENABLE_SPAN);
-#ifdef AUG_NO_ERR_CLOSE
-	DEF_AUG_FLAG(NO_ERR_CLOSE);
-#endif
+    DEF_AUG_FLAG(NO_ERR_CLOSE);
 #undef DEF_AUG_FLAG
 
 /* Constants for enum aug_errcode_t */
@@ -509,9 +507,9 @@ void Init__augeas() {
     DEF_AUG_ERR(ENOSPAN);
     DEF_AUG_ERR(EMVDESC);
     DEF_AUG_ERR(ECMDRUN);
-	DEF_AUG_ERR(EBADARG);
+    DEF_AUG_ERR(EBADARG);
 #ifdef AUG_ELABEL
-	DEF_AUG_ERR(ELABEL);
+    DEF_AUG_ERR(ELABEL);
 #endif
 #undef DEF_AUG_ERR
 
