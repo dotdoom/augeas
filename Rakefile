@@ -1,4 +1,10 @@
 # -*- ruby -*-
+# Rakefile: build ruby augeas bindings
+#
+# See AUTHORS for the list of authors
+#
+# Distributed under the GNU Lesser General Public License v2.1 or later.
+# See COPYING for details
 
 require 'rake/clean'
 require 'rdoc/task'
@@ -6,7 +12,7 @@ require 'rake/testtask'
 require 'rubygems/package_task'
 
 GEM_NAME='augeas'
-GEM_VERSION='0.6.0'
+GEM_VERSION='0.6.1'
 EXT_CONF='ext/augeas/extconf.rb'
 MAKEFILE="ext/augeas/Makefile"
 AUGEAS_MODULE="ext/augeas/_augeas.so"
@@ -80,7 +86,7 @@ SPEC = Gem::Specification.new do |s|
     s.summary = "Ruby bindings for augeas"
     s.authors = [ "Bryan Kearney", "David Lutterkort", "Ionut Artarisi", "Artem Sheremet" ]
     s.files = PKG_FILES
-	s.licenses = ['LGPLv2']
+    s.licenses = ['LGPLv2']
     s.required_ruby_version = '>= 1.8.7'
     s.extensions = "ext/augeas/extconf.rb"
     s.description = "Provides bindings for augeas."

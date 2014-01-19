@@ -1,5 +1,7 @@
 = Ruby bindings for augeas
 
+{<img src="https://badge.fury.io/rb/augeas.png" alt="Gem Version" />}[http://badge.fury.io/rb/augeas]
+
 The class Augeas provides bindings to augeas [http://augeas.net] library.
 
 == Usage: Setting Data
