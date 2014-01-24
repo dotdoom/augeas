@@ -255,8 +255,8 @@ class Augeas
 		begin
 			run_command :augeas_save
 		rescue Augeas::CommandExecutionError => e
-			raise e, "Saving failed. Search the augeas tree in /augeas//error"+
-				"for the actual errors."
+			raise e, 'Saving failed. Search the augeas tree in /augeas//error ' <<
+				'for the actual errors.'
 		end
 
 		nil

@@ -87,57 +87,6 @@ class TestAugeas < Test::Unit::TestCase
 		assert_equal(foo, 'bar')
 	end
 
-	def test_load
-		aug = aug_create(no_load: true)
-		assert_equal([], aug.match("/files/etc/*"))
-		aug.rm("/augeas/load/*");
-		assert_nothing_raised {
-			aug.load
-		}
-		assert_equal([], aug.match("/files/etc/*"))
-	end
-
-	def test_transform
-		aug = aug_create(no_load: true)
-		aug.clear_transforms
-		aug.transform(:lens => "Hosts.lns",
-					  :incl => "/etc/hosts")
-		assert_raise(ArgumentError) {
-			aug.transform(:name => "Fstab",
-						  :incl => [ "/etc/fstab" ],
-						  :excl => [ "*~", "*.rpmnew" ])
-		}
-		aug.transform(:lens => "Inittab",
-					  :incl => "/etc/inittab")
-		aug.transform(:lens => "Fstab.lns",
-					  :incl => "/etc/fstab*",
-					  :excl => "*~")
-		assert_equal(["/augeas/load/Fstab", "/augeas/load/Fstab/excl",
-				"/augeas/load/Fstab/incl", "/augeas/load/Fstab/lens",
-				"/augeas/load/Hosts", "/augeas/load/Hosts/incl",
-				"/augeas/load/Hosts/lens", "/augeas/load/Inittab",
-				"/augeas/load/Inittab/incl",
-				"/augeas/load/Inittab/lens"],
-				aug.match("/augeas/load//*").sort)
-		aug.load
-		assert_equal(["/files/etc/hosts", "/files/etc/inittab"],
-					 aug.match("/files/etc/*").sort)
-	end
-
-	def test_defvar
-		Augeas::create(root: "/dev/null") do |aug|
-			aug.set("/a/b", "bval")
-			aug.set("/a/c", "cval")
-			assert aug.defvar("var", "/a/b")
-			assert_equal(["/a/b"], aug.match("$var"))
-			assert aug.defvar("var", nil)
-			assert_raises(SystemCallError) {
-				aug.match("$var")
-			}
-			assert ! aug.defvar("var", "/foo/")
-		end
-	end
-
 	def test_close
 		aug = Augeas::create(:root => "/tmp", :save_mode => :newfile)
 		assert_equal("newfile", aug.get("/augeas/save"))
@@ -273,17 +222,13 @@ class TestAugeas < Test::Unit::TestCase
 			assert aug.defvar("var", "/a/b")
 			assert_equal(["/a/b"], aug.match("$var"))
 			assert aug.defvar("var", nil)
-			assert_raises(SystemCallError) {
+			assert_raises(Augeas::InvalidPathError) {
 				aug.match("$var")
 			}
-			assert ! aug.defvar("var", "/foo/")
+			assert_raises(Augeas::InvalidPathError) {
+				aug.defvar("var", "/foo/")
+			}
 		end
-	end
-
-	def test_defnode
-		aug = aug_create
-		assert aug.defnode("x", "/files/etc/hosts/*[ipaddr = '127.0.0.1']", nil)
-		assert_equal(["/files/etc/hosts/1"], aug.match("$x"))
 	end
 
 	def test_insert_before
@@ -383,20 +328,6 @@ class TestAugeas < Test::Unit::TestCase
 		assert_equal(aug.get("/files/etc/group/disk/user"), nil)
 	end
 
-	def test_setm
-		aug = aug_create
-
-		aug.setm("/files/etc/group/*[label() =~ regexp(\"rpc.*\")]",
-				 "users", "testuser1")
-		assert_equal(aug.get("/files/etc/group/rpc/users"), "testuser1")
-		assert_equal(aug.get("/files/etc/group/rpcuser/users"), "testuser1")
-
-		aug.setm("/files/etc/group/*[label() =~ regexp(\"rpc.*\")]/users",
-				 nil, "testuser2")
-		assert_equal(aug.get("/files/etc/group/rpc/users"), "testuser2")
-		assert_equal(aug.get("/files/etc/group/rpcuser/users"), "testuser2")
-	end
-
 	def test_setm_invalid_path
 		aug = aug_create
 		assert_raises (Augeas::InvalidPathError) { aug.setm("[]", "bar", "baz") }
@@ -438,16 +369,6 @@ class TestAugeas < Test::Unit::TestCase
 		assert err[:details]
 	end
 
-	def test_defvar
-		Augeas::create(:root => "/dev/null") do |aug|
-			aug.set("/a/b", "bval")
-			aug.set("/a/c", "cval")
-			assert aug.defvar("var", "/a/b")
-			assert_equal(["/a/b"], aug.match("$var"))
-			assert aug.defvar("var", nil)
-		end
-	end
-
 	def test_defvar_invalid_path
 		aug = aug_create
 		assert_raises(Augeas::InvalidPathError) { aug.defvar('var', 'F#@!$#@') }
@@ -462,20 +383,6 @@ class TestAugeas < Test::Unit::TestCase
 	def test_defnode_invalid_path
 		aug = aug_create
 		assert_raises (Augeas::InvalidPathError) { aug.defnode('x', '//', nil)}
-	end
-
-	def test_span
-		aug = aug_create
-
-		aug.set("/augeas/span", "enable")
-		aug.rm("/files/etc")
-		aug.load
-
-		span = aug.span("/files/etc/ssh/sshd_config/Protocol")
-		assert_not_nil(span[:filename])
-		assert_equal(29..37, span[:label])
-		assert_equal(38..39, span[:value])
-		assert_equal(29..40, span[:span])
 	end
 
 	def test_span_no_span_info
@@ -508,28 +415,6 @@ class TestAugeas < Test::Unit::TestCase
 	def test_flag_enable_span
 		aug = aug_create(:enable_span => true)
 		assert_equal("enable", aug.get("/augeas/span"))
-	end
-
-	def test_set
-		aug = aug_create
-		aug.set("/files/etc/group/disk/user[last()+1]",["user1","user2"])
-		assert_equal( aug.get("/files/etc/group/disk/user[1]"),"root" )
-		assert_equal( aug.get("/files/etc/group/disk/user[2]"),"user1" )
-		assert_equal( aug.get("/files/etc/group/disk/user[3]"),"user2" )
-
-		aug.set("/files/etc/group/new_group/user[last()+1]",
-				"nuser1",["nuser2","nuser3"])
-		assert_equal( aug.get("/files/etc/group/new_group/user[1]"),"nuser1")
-		assert_equal( aug.get("/files/etc/group/new_group/user[2]"),"nuser2" )
-		assert_equal( aug.get("/files/etc/group/new_group/user[3]"),"nuser3" )
-
-		aug.rm("/files/etc/group/disk/user")
-		aug.set("/files/etc/group/disk/user[last()+1]","testuser")
-		assert_equal( aug.get("/files/etc/group/disk/user"),"testuser")
-
-		aug.rm("/files/etc/group/disk/user")
-		aug.set("/files/etc/group/disk/user[last()+1]", nil)
-		assert_equal( aug.get("/files/etc/group/disk/user"), nil)
 	end
 
 	def test_setm

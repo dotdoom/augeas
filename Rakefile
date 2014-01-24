@@ -12,7 +12,7 @@ require 'rake/testtask'
 require 'rubygems/package_task'
 
 GEM_NAME='augeas'
-GEM_VERSION='0.6.1'
+GEM_VERSION='0.6.2'
 EXT_CONF='ext/augeas/extconf.rb'
 MAKEFILE="ext/augeas/Makefile"
 AUGEAS_MODULE="ext/augeas/_augeas.so"
@@ -82,14 +82,14 @@ SPEC = Gem::Specification.new do |s|
     s.name = GEM_NAME
     s.version = GEM_VERSION
     s.email = "dot.doom@gmail.com"
-    s.homepage = "http://augeas.net/"
+    s.homepage = "https://github.com/dotdoom/augeas"
     s.summary = "Ruby bindings for augeas"
-    s.authors = [ "Bryan Kearney", "David Lutterkort", "Ionut Artarisi", "Artem Sheremet" ]
+    s.authors = ["Bryan Kearney", "David Lutterkort", "Ionut Artarisi", "Artem Sheremet"]
     s.files = PKG_FILES
     s.licenses = ['LGPLv2']
     s.required_ruby_version = '>= 1.8.7'
     s.extensions = "ext/augeas/extconf.rb"
-    s.description = "Provides bindings for augeas."
+    s.description = "A fork of ruby-augeas (bindings for augeas) with exceptions support."
     s.add_development_dependency "rake"
     s.add_development_dependency "rdoc"
 end
