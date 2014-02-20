@@ -1,5 +1,6 @@
 = Ruby bindings for augeas
 
+{<img src="https://travis-ci.org/dotdoom/augeas.png?branch=master" alt="Travis CI build results" />}[https://travis-ci.org/dotdoom/augeas]
 {<img src="https://badge.fury.io/rb/augeas.png" alt="Gem Version" />}[http://badge.fury.io/rb/augeas]
 
 The class Augeas provides bindings to augeas [http://augeas.net] library.
