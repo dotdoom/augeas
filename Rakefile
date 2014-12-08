@@ -76,7 +76,7 @@ SPEC = Gem::Specification.new do |s|
 	s.summary = "Ruby bindings for augeas"
 	s.authors = File.read('AUTHORS').lines.grep(/^  /).map { |a| a[/[^<]+/].strip }.uniq
 	s.files = PKG_FILES
-	s.licenses = ['LGPLv2']
+  s.licenses = ['LGPL-2.1+']
 	s.required_ruby_version = '>= 1.8.7'
 	s.extensions = "ext/augeas/extconf.rb"
 	s.description = "A fork of ruby-augeas (bindings for augeas) with exceptions support."
