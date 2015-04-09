@@ -43,4 +43,6 @@ unless have_library("xml2")
   raise "libxml2 is not installed"
 end
 
+pkg_config('libxml-2.0')
+
 create_makefile(extension_name)

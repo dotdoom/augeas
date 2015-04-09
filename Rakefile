@@ -12,7 +12,7 @@ require 'rake/testtask'
 require 'rubygems/package_task'
 
 GEM_NAME = 'augeas'
-GEM_VERSION = '0.6.3'
+GEM_VERSION = '0.6.4'
 EXT_CONF = 'ext/augeas/extconf.rb'
 MAKEFILE = 'ext/augeas/Makefile'
 AUGEAS_MODULE = 'ext/augeas/_augeas.so'
