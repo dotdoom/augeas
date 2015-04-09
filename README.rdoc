@@ -39,7 +39,12 @@ startup; that allows setting up a custom transform.
     aug.get("/files/etc/aliases/*[name = 'postmaster']/value")
   end
 
-      
+
+== Build Dependencies
+
+To build or install this gem manually, headers for libaugeas and libxml are
+needed. Additionally the pkg-config tool has to be installed.
+
 == Deprecation Warning
 
 The Augeas API has been heavily rewritten in order to better support
